@@ -50,6 +50,7 @@ public class MongoDbDatabase extends Database {
 
     private final String usersTable;
     private final String userDataTable;
+
     public MongoDbDatabase(@NotNull HuskSync plugin) {
         super(plugin);
         this.usersTable = plugin.getSettings().getDatabase().getTableName(TableName.USERS);
@@ -76,7 +77,7 @@ public class MongoDbDatabase extends Database {
             }
         } catch (Exception e) {
             throw new IllegalStateException("Failed to establish a connection to the MongoDB database. " +
-                    "Please check the supplied database credentials in the config file", e);
+                                            "Please check the supplied database credentials in the config file", e);
         }
     }
 
@@ -107,7 +108,7 @@ public class MongoDbDatabase extends Database {
                         if (!existingUser.getUsername().equals(user.getUsername())) {
                             // Update a user's name if it has changed in the database
                             try {
-                                Document filter = new Document("uuid", existingUser.getUuid().toString());
+                                Document filter = new Document("uuid", existingUser.getUuid());
                                 Document doc = mongoCollectionHelper.getCollection(usersTable).find(filter).first();
                                 if (doc == null) {
                                     throw new MongoException("User document returned null!");
@@ -123,7 +124,7 @@ public class MongoDbDatabase extends Database {
                     () -> {
                         // Insert new player data into the database
                         try {
-                            Document doc = new Document("uuid", user.getUuid().toString()).append("username", user.getUsername());
+                            Document doc = new Document("uuid", user.getUuid()).append("username", user.getUsername());
                             mongoCollectionHelper.insertDocument(usersTable, doc);
                         } catch (MongoException e) {
                             plugin.log(Level.SEVERE, "Failed to insert a user into the database", e);
@@ -148,8 +149,7 @@ public class MongoDbDatabase extends Database {
             Document filter = new Document("uuid", uuid);
             Document doc = mongoCollectionHelper.getCollection(usersTable).find(filter).first();
             if (doc != null) {
-                return Optional.of(new User(UUID.fromString(doc.getString("uuid")),
-                        doc.getString("username")));
+                return Optional.of(new User(uuid, doc.getString("username")));
             }
             return Optional.empty();
         } catch (MongoException e) {
@@ -171,7 +171,7 @@ public class MongoDbDatabase extends Database {
             Document filter = new Document("username", username);
             Document doc = mongoCollectionHelper.getCollection(usersTable).find(filter).first();
             if (doc != null) {
-                return Optional.of(new User(UUID.fromString(doc.getString("uuid")),
+                return Optional.of(new User(doc.get("uuid", UUID.class),
                         doc.getString("username")));
             }
             return Optional.empty();
@@ -191,12 +191,12 @@ public class MongoDbDatabase extends Database {
     @Override
     public Optional<DataSnapshot.Packed> getLatestSnapshot(@NotNull User user) {
         try {
-            Document filter = new Document("player_uuid", user.getUuid().toString());
+            Document filter = new Document("player_uuid", user.getUuid());
             Document sort = new Document("timestamp", -1); // -1 = Descending
             FindIterable<Document> iterable = mongoCollectionHelper.getCollection(userDataTable).find(filter).sort(sort);
             Document doc = iterable.first();
             if (doc != null) {
-                final UUID versionUuid = UUID.fromString(doc.getString("version_uuid"));
+                final UUID versionUuid = doc.get("version_uuid", UUID.class);
                 final OffsetDateTime timestamp = OffsetDateTime.ofInstant(Instant.ofEpochMilli((long) doc.get("timestamp")), TimeZone.getDefault().toZoneId());
                 final Binary bin = doc.get("data", Binary.class);
                 final byte[] dataByteArray = bin.getData();
@@ -221,11 +221,11 @@ public class MongoDbDatabase extends Database {
     public List<DataSnapshot.Packed> getAllSnapshots(@NotNull User user) {
         try {
             final List<DataSnapshot.Packed> retrievedData = Lists.newArrayList();
-            Document filter = new Document("player_uuid", user.getUuid().toString());
+            Document filter = new Document("player_uuid", user.getUuid());
             Document sort = new Document("timestamp", -1); // -1 = Descending
             FindIterable<Document> iterable = mongoCollectionHelper.getCollection(userDataTable).find(filter).sort(sort);
             for (Document doc : iterable) {
-                final UUID versionUuid = UUID.fromString(doc.getString("version_uuid"));
+                final UUID versionUuid = doc.get("version_uuid", UUID.class);
                 final OffsetDateTime timestamp = OffsetDateTime.ofInstant(Instant.ofEpochMilli((long) doc.get("timestamp")), TimeZone.getDefault().toZoneId());
                 final Binary bin = doc.get("data", Binary.class);
                 final byte[] dataByteArray = bin.getData();
@@ -249,7 +249,7 @@ public class MongoDbDatabase extends Database {
     @Override
     public Optional<DataSnapshot.Packed> getSnapshot(@NotNull User user, @NotNull UUID versionUuid) {
         try {
-            Document filter = new Document("player_uuid", user.getUuid().toString()).append("version_uuid", versionUuid.toString());
+            Document filter = new Document("player_uuid", user.getUuid()).append("version_uuid", versionUuid);
             Document sort = new Document("timestamp", -1); // -1 = Descending
             FindIterable<Document> iterable = mongoCollectionHelper.getCollection(userDataTable).find(filter).sort(sort);
             Document doc = iterable.first();
@@ -281,7 +281,7 @@ public class MongoDbDatabase extends Database {
             final int maxSnapshots = plugin.getSettings().getSynchronization().getMaxUserDataSnapshots();
             if (unpinnedUserData.size() > maxSnapshots) {
 
-                Document filter = new Document("player_uuid", user.getUuid().toString()).append("pinned", false);
+                Document filter = new Document("player_uuid", user.getUuid()).append("pinned", false);
                 Document sort = new Document("timestamp", 1); // 1 = Ascending
                 FindIterable<Document> iterable = mongoCollectionHelper.getCollection(userDataTable)
                         .find(filter)
@@ -307,7 +307,7 @@ public class MongoDbDatabase extends Database {
     @Override
     public boolean deleteSnapshot(@NotNull User user, @NotNull UUID versionUuid) {
         try {
-            Document filter = new Document("player_uuid", user.getUuid().toString()).append("version_uuid", versionUuid.toString());
+            Document filter = new Document("player_uuid", user.getUuid()).append("version_uuid", versionUuid);
             Document doc = mongoCollectionHelper.getCollection(userDataTable).find(filter).first();
             if (doc == null) {
                 return false;
@@ -332,7 +332,7 @@ public class MongoDbDatabase extends Database {
     @Override
     protected void rotateLatestSnapshot(@NotNull User user, @NotNull OffsetDateTime within) {
         try {
-            Document filter = new Document("player_uuid", user.getUuid().toString()).append("pinned", false);
+            Document filter = new Document("player_uuid", user.getUuid()).append("pinned", false);
             Document sort = new Document("timestamp", 1); // 1 = Ascending
             FindIterable<Document> iterable = mongoCollectionHelper.getCollection(userDataTable)
                     .find(filter)
@@ -362,8 +362,8 @@ public class MongoDbDatabase extends Database {
     @Override
     protected void createSnapshot(@NotNull User user, @NotNull DataSnapshot.Packed data) {
         try {
-            Document doc = new Document("player_uuid", user.getUuid().toString())
-                    .append("version_uuid", data.getId().toString())
+            Document doc = new Document("player_uuid", user.getUuid())
+                    .append("version_uuid", data.getId())
                     .append("timestamp", data.getTimestamp().toInstant().toEpochMilli())
                     .append("save_cause", data.getSaveCause().name())
                     .append("pinned", data.isPinned())
@@ -377,14 +377,14 @@ public class MongoDbDatabase extends Database {
     /**
      * Update a saved {@link DataSnapshot} by given version UUID
      *
-     * @param user     The user whose data snapshot
+     * @param user The user whose data snapshot
      * @param data The {@link DataSnapshot} to update
      */
     @Blocking
     @Override
     public void updateSnapshot(@NotNull User user, @NotNull DataSnapshot.Packed data) {
         try {
-            Document doc = new Document("player_uuid", user.getUuid().toString()).append("version_uuid", data.getId().toString());
+            Document doc = new Document("player_uuid", user.getUuid()).append("version_uuid", data.getId());
             Bson updates = Updates.combine(
                     Updates.set("save_cause", data.getSaveCause().name()),
                     Updates.set("pinned", data.isPinned()),

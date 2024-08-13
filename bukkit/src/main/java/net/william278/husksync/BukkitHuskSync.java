@@ -34,7 +34,7 @@ import net.william278.husksync.adapter.DataAdapter;
 import net.william278.husksync.adapter.GsonAdapter;
 import net.william278.husksync.adapter.SnappyGsonAdapter;
 import net.william278.husksync.api.BukkitHuskSyncAPI;
-import net.william278.husksync.command.BukkitCommand;
+import net.william278.husksync.command.PluginCommand;
 import net.william278.husksync.config.Locales;
 import net.william278.husksync.config.Server;
 import net.william278.husksync.config.Settings;
@@ -57,6 +57,8 @@ import net.william278.husksync.util.BukkitLegacyConverter;
 import net.william278.husksync.util.BukkitMapPersister;
 import net.william278.husksync.util.BukkitTask;
 import net.william278.husksync.util.LegacyConverter;
+import net.william278.uniform.Uniform;
+import net.william278.uniform.bukkit.BukkitUniform;
 import org.bstats.bukkit.Metrics;
 import org.bukkit.entity.Player;
 import org.bukkit.map.MapView;
@@ -64,7 +66,6 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 import space.arim.morepaperlib.MorePaperLib;
-import space.arim.morepaperlib.commands.CommandRegistration;
 import space.arim.morepaperlib.scheduling.AsynchronousScheduler;
 import space.arim.morepaperlib.scheduling.AttachedScheduler;
 import space.arim.morepaperlib.scheduling.GracefulScheduling;
@@ -135,6 +136,10 @@ public class BukkitHuskSync extends JavaPlugin implements HuskSync, BukkitTask.S
     @Override
     public void onEnable() {
         this.audiences = BukkitAudiences.create(this);
+
+        // Register commands
+        initialize("commands", (plugin) -> getUniform().register(PluginCommand.Type.create(this)));
+
         // Prepare data adapter
         initialize("data adapter", (plugin) -> {
             if (settings.getSynchronization().isCompressData()) {
@@ -150,15 +155,15 @@ public class BukkitHuskSync extends JavaPlugin implements HuskSync, BukkitTask.S
             registerSerializer(Identifier.INVENTORY, new BukkitSerializer.Inventory(this));
             registerSerializer(Identifier.ENDER_CHEST, new BukkitSerializer.EnderChest(this));
             registerSerializer(Identifier.ADVANCEMENTS, new BukkitSerializer.Advancements(this));
-            registerSerializer(Identifier.STATISTICS, new BukkitSerializer.Json<>(this, BukkitData.Statistics.class));
+            registerSerializer(Identifier.STATISTICS, new Serializer.Json<>(this, BukkitData.Statistics.class));
             registerSerializer(Identifier.POTION_EFFECTS, new BukkitSerializer.PotionEffects(this));
-            registerSerializer(Identifier.GAME_MODE, new BukkitSerializer.Json<>(this, BukkitData.GameMode.class));
-            registerSerializer(Identifier.FLIGHT_STATUS, new BukkitSerializer.Json<>(this, BukkitData.FlightStatus.class));
-            registerSerializer(Identifier.ATTRIBUTES, new BukkitSerializer.Json<>(this, BukkitData.Attributes.class));
-            registerSerializer(Identifier.HEALTH, new BukkitSerializer.Json<>(this, BukkitData.Health.class));
-            registerSerializer(Identifier.HUNGER, new BukkitSerializer.Json<>(this, BukkitData.Hunger.class));
-            registerSerializer(Identifier.EXPERIENCE, new BukkitSerializer.Json<>(this, BukkitData.Experience.class));
-            registerSerializer(Identifier.LOCATION, new BukkitSerializer.Json<>(this, BukkitData.Location.class));
+            registerSerializer(Identifier.GAME_MODE, new Serializer.Json<>(this, BukkitData.GameMode.class));
+            registerSerializer(Identifier.FLIGHT_STATUS, new Serializer.Json<>(this, BukkitData.FlightStatus.class));
+            registerSerializer(Identifier.ATTRIBUTES, new Serializer.Json<>(this, BukkitData.Attributes.class));
+            registerSerializer(Identifier.HEALTH, new Serializer.Json<>(this, BukkitData.Health.class));
+            registerSerializer(Identifier.HUNGER, new Serializer.Json<>(this, BukkitData.Hunger.class));
+            registerSerializer(Identifier.EXPERIENCE, new Serializer.Json<>(this, BukkitData.Experience.class));
+            registerSerializer(Identifier.LOCATION, new Serializer.Json<>(this, BukkitData.Location.class));
             validateDependencies();
         });
 
@@ -195,9 +200,6 @@ public class BukkitHuskSync extends JavaPlugin implements HuskSync, BukkitTask.S
 
         // Register events
         initialize("events", (plugin) -> eventListener.onEnable());
-
-        // Register commands
-        initialize("commands", (plugin) -> BukkitCommand.Type.registerCommands(this));
 
         // Register plugin hooks
         initialize("hooks", (plugin) -> {
@@ -264,6 +266,12 @@ public class BukkitHuskSync extends JavaPlugin implements HuskSync, BukkitTask.S
         this.dataSyncer = dataSyncer;
     }
 
+    @Override
+    @NotNull
+    public Uniform getUniform() {
+        return BukkitUniform.getInstance(this);
+    }
+
     @NotNull
     @Override
     public Map<Identifier, Data> getPlayerCustomDataStore(@NotNull OnlineUser user) {
@@ -282,7 +290,7 @@ public class BukkitHuskSync extends JavaPlugin implements HuskSync, BukkitTask.S
     @Override
     public boolean isDependencyLoaded(@NotNull String name) {
         final Plugin plugin = getServer().getPluginManager().getPlugin(name);
-        return plugin != null && plugin.isEnabled();
+        return plugin != null;
     }
 
     // Register bStats metrics
@@ -326,6 +334,12 @@ public class BukkitHuskSync extends JavaPlugin implements HuskSync, BukkitTask.S
     }
 
     @Override
+    @NotNull
+    public String getServerVersion() {
+        return String.format("%s/%s", getServer().getName(), getServer().getVersion());
+    }
+
+    @Override
     public Optional<LegacyConverter> getLegacyConverter() {
         return Optional.of(legacyConverter);
     }
@@ -350,11 +364,6 @@ public class BukkitHuskSync extends JavaPlugin implements HuskSync, BukkitTask.S
     @NotNull
     public AttachedScheduler getUserSyncScheduler(@NotNull UserDataHolder user) {
         return getScheduler().entitySpecificScheduler(((BukkitUser) user).getPlayer());
-    }
-
-    @NotNull
-    public CommandRegistration getCommandRegistrar() {
-        return paperLib.commandRegistration();
     }
 
     @Override

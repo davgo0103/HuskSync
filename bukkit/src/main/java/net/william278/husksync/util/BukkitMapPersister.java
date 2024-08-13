@@ -31,8 +31,10 @@ import net.william278.mapdataapi.MapData;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.ShulkerBox;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.BlockStateMeta;
 import org.bukkit.inventory.meta.MapMeta;
 import org.bukkit.map.*;
 import org.jetbrains.annotations.ApiStatus;
@@ -94,6 +96,9 @@ public interface BukkitMapPersister {
             }
             if (item.getType() == Material.FILLED_MAP && item.hasItemMeta()) {
                 items[i] = function.apply(item);
+            } else if (item.getItemMeta() instanceof BlockStateMeta b && b.getBlockState() instanceof ShulkerBox box) {
+                forEachMap(box.getInventory().getContents(), function);
+                b.setBlockState(box);
             }
         }
         return items;
@@ -419,19 +424,23 @@ public interface BukkitMapPersister {
         @NotNull
         private MapData extractMapData() {
             final List<MapBanner> banners = Lists.newArrayList();
-            final String BANNER_PREFIX = "banner_";
-            for (int i = 0; i < getCursors().size(); i++) {
-                final MapCursor cursor = getCursors().getCursor(i);
-                final String type = cursor.getType().name().toLowerCase(Locale.ENGLISH);
-                if (type.startsWith(BANNER_PREFIX)) {
-                    banners.add(new MapBanner(
-                            type.replaceAll(BANNER_PREFIX, ""),
-                            cursor.getCaption() == null ? "" : cursor.getCaption(),
-                            cursor.getX(),
-                            mapView.getWorld() != null ? mapView.getWorld().getSeaLevel() : 128,
-                            cursor.getY()
-                    ));
+            try {
+                final String BANNER_PREFIX = "banner_";
+                for (int i = 0; i < getCursors().size(); i++) {
+                    final MapCursor cursor = getCursors().getCursor(i);
+                    final String type = cursor.getType().name().toLowerCase(Locale.ENGLISH);
+                    if (type.startsWith(BANNER_PREFIX)) {
+                        banners.add(new MapBanner(
+                                type.replaceAll(BANNER_PREFIX, ""),
+                                cursor.getCaption() == null ? "" : cursor.getCaption(),
+                                cursor.getX(),
+                                mapView.getWorld() != null ? mapView.getWorld().getSeaLevel() : 128,
+                                cursor.getY()
+                        ));
+                    }
+
                 }
+            } catch (Throwable ignored) {
             }
             return MapData.fromPixels(pixels, getDimension(), (byte) 2, banners, List.of());
         }

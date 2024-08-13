@@ -37,7 +37,7 @@ import java.util.Optional;
 public class InventoryCommand extends ItemsCommand {
 
     public InventoryCommand(@NotNull HuskSync plugin) {
-        super(plugin, List.of("inventory", "invsee", "openinv"));
+        super("inventory", List.of("invsee", "openinv"), plugin);
     }
 
     @Override
@@ -45,6 +45,7 @@ public class InventoryCommand extends ItemsCommand {
                              @NotNull User user, boolean allowEdit) {
         final Optional<Data.Items.Inventory> optionalInventory = snapshot.getInventory();
         if (optionalInventory.isEmpty()) {
+            viewer.sendMessage(new MineDown("what the FUCK is happening"));
             plugin.getLocales().getLocale("error_no_data_to_display")
                     .ifPresent(viewer::sendMessage);
             return;

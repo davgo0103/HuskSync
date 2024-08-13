@@ -37,7 +37,7 @@ import java.util.Optional;
 public class EnderChestCommand extends ItemsCommand {
 
     public EnderChestCommand(@NotNull HuskSync plugin) {
-        super(plugin, List.of("enderchest", "echest", "openechest"));
+        super("enderchest", List.of("echest", "openechest"), plugin);
     }
 
     @Override

@@ -53,7 +53,7 @@ public abstract class EventListener {
             return;
         }
         plugin.lockPlayer(user.getUuid());
-        plugin.getDataSyncer().setUserData(user);
+        plugin.getDataSyncer().syncApplyUserData(user);
     }
 
     /**
@@ -66,7 +66,7 @@ public abstract class EventListener {
             return;
         }
         plugin.lockPlayer(user.getUuid());
-        plugin.getDataSyncer().saveUserData(user);
+        plugin.getDataSyncer().syncSaveUserData(user);
     }
 
     /**
@@ -94,7 +94,7 @@ public abstract class EventListener {
     protected void saveOnPlayerDeath(@NotNull OnlineUser user, @NotNull Data.Items items) {
         final SaveOnDeathSettings settings = plugin.getSettings().getSynchronization().getSaveOnDeath();
         if (plugin.isDisabling() || !settings.isEnabled() || plugin.isLocked(user.getUuid())
-                || user.isNpc() || (!settings.isSaveEmptyItems() && items.isEmpty())) {
+            || user.isNpc() || (!settings.isSaveEmptyItems() && items.isEmpty())) {
             return;
         }
 

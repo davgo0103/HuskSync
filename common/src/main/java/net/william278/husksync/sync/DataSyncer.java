@@ -81,18 +81,18 @@ public abstract class DataSyncer {
     }
 
     /**
-     * Called when a user's data should be fetched and applied to them
+     * Called when a user's data should be fetched and applied to them as part of a synchronization process
      *
      * @param user the user to fetch data for
      */
-    public abstract void setUserData(@NotNull OnlineUser user);
+    public abstract void syncApplyUserData(@NotNull OnlineUser user);
 
     /**
-     * Called when a user's data should be serialized and saved
+     * Called when a user's data should be serialized and saved as part of a synchronization process
      *
      * @param user the user to save
      */
-    public abstract void saveUserData(@NotNull OnlineUser user);
+    public abstract void syncSaveUserData(@NotNull OnlineUser user);
 
     /**
      * Save a {@link DataSnapshot.Packed user's data snapshot} to the database,
@@ -150,7 +150,7 @@ public abstract class DataSyncer {
     private long getMaxListenAttempts() {
         return BASE_LISTEN_ATTEMPTS + (
                 (Math.max(100, plugin.getSettings().getSynchronization().getNetworkLatencyMilliseconds()) / 1000)
-                        * 20 / LISTEN_DELAY
+                * 20 / LISTEN_DELAY
         );
     }
 

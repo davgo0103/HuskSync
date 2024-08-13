@@ -395,7 +395,7 @@ public class DataSnapshot {
                     .map(entry -> Map.entry(plugin.getIdentifier(entry.getKey()).orElseThrow(), entry.getValue()))
                     .collect(Collectors.toMap(
                             Map.Entry::getKey,
-                            entry -> plugin.deserializeData(entry.getKey(), entry.getValue()),
+                            entry -> plugin.deserializeData(entry.getKey(), entry.getValue(), getMinecraftVersion()),
                             (a, b) -> b, () -> Maps.newTreeMap(SerializerRegistry.DEPENDENCY_ORDER_COMPARATOR)
                     ));
         }
@@ -535,9 +535,9 @@ public class DataSnapshot {
         public Builder timestamp(@NotNull OffsetDateTime timestamp) {
             if (timestamp.isAfter(OffsetDateTime.now())) {
                 throw new IllegalArgumentException("Data snapshots cannot have a timestamp set in the future! "
-                        + "Make sure your database server time matches the server time.\n"
-                        + "Current game server timestamp: " + OffsetDateTime.now() + " / "
-                        + "Snapshot timestamp: " + timestamp);
+                                                   + "Make sure your database server time matches the server time.\n"
+                                                   + "Current game server timestamp: " + OffsetDateTime.now() + " / "
+                                                   + "Snapshot timestamp: " + timestamp);
             }
             this.timestamp = timestamp;
             return this;

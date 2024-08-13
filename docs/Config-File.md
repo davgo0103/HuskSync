@@ -28,13 +28,13 @@ check_for_updates: true
 cluster_id: ''
 # Enable development debug logging
 debug_logging: true
-# Whether to provide modern, rich TAB suggestions for commands (if available)
-brigadier_tab_completion: false
 # Whether to enable the Player Analytics hook.
 # Docs: https://william278.net/docs/husksync/plan-hook
 enable_plan_hook: true
 # Whether to cancel game event packets directly when handling locked players if ProtocolLib or PacketEvents is installed
 cancel_packets: true
+# Add HuskSync commands to this list to prevent them from being registered (e.g. ['userdata'])
+disabled_commands: []
 # Database settings
 database:
   # Type of database to use (MYSQL, MARIADB, POSTGRES, MONGO)
@@ -78,7 +78,7 @@ redis:
     # List of host:port pairs
     nodes: []
     password: ''
-# Redis settings
+# Data syncing settings
 synchronization:
   # The data synchronization mode to use (LOCKSTEP or DELAY). LOCKSTEP is recommended for most networks.
   # Docs: https://william278.net/docs/husksync/sync-modes
@@ -109,7 +109,7 @@ synchronization:
     sync_dead_players_changing_server: true
   # Whether to use the snappy data compression algorithm. Keep on unless you know what you're doing
   compress_data: true
-  # Where to display sync notifications (ACTION_BAR, CHAT, TOAST or NONE)
+  # Where to display sync notifications (ACTION_BAR, CHAT or NONE)
   notification_display_slot: ACTION_BAR
   # Persist maps locked in a Cartography Table to let them be viewed on any server
   persist_locked_maps: true
@@ -134,9 +134,14 @@ synchronization:
   # Commands which should be blocked before a player has finished syncing (Use * to block all commands)
   blacklisted_commands_while_locked:
     - '*'
-  # For attribute syncing, which attributes should be ignored/skipped when syncing
-  # (e.g. ['minecraft:generic.max_health', 'minecraft:generic.attack_damage'])
-  ignored_attributes: []
+  # Configuration for how to sync attributes
+  attributes:
+    # Which attributes should not be saved when syncing users. Supports wildcard matching.
+    # (e.g. ['minecraft:generic.max_health', 'minecraft:generic.*'])
+    ignored_attributes: []
+    # Which modifiers should not be saved when syncing users. Supports wildcard matching.
+    # (e.g. ['minecraft:effect.speed', 'minecraft:effect.*'])
+    ignored_modifiers: ['minecraft:effect.*', 'minecraft:creative_mode_*']
   # Event priorities for listeners (HIGHEST, NORMAL, LOWEST). Change if you encounter plugin conflicts
   event_priorities:
     quit_listener: LOWEST
